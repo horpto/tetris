@@ -16,6 +16,12 @@ class CellColor(Enum):
     def choose_one(cls):
         return random.choice([c for c in cls if c != cls.EMPTY])
 
+    def isnt_empty(self):
+        return self != self.EMPTY
+
+    def is_empty(self):
+        return self == self.EMPTY
+
 class Figure:
     cells = ()
 
@@ -27,10 +33,9 @@ class Figure:
 
     def can_move_down(self, fields):
         for y, x, c in self.cells:
-            print('can_move_down', y,x, c, self.cells, (y+1, x, c) not in self.cells, fields[y+1][x] )
             if y + 1 >= len(fields):
                 return False
-            if fields[y+1][x] != CellColor.EMPTY and \
+            if fields[y+1][x].isnt_empty() and \
                     all(y+1 != y_other or x != x_other for y_other, x_other, _ in self.cells):
                 return False
         return True
@@ -45,6 +50,10 @@ class Figure:
     def reset_fields(self, fields):
         for y, x, color in self.cells:
             fields[y][x] = CellColor.EMPTY
+
+    def set_fields(self, fields):
+        for y, x, color in self.cells:
+            fields[y][x] = color
 
 
 class SquareFigure(Figure):
@@ -76,7 +85,7 @@ class Tetris:
         )
 
         self.score = 0
-        self.label = Label(text="Score:")
+        self.score_label = Label(text="Score:")
         self.score_text = Label(text=str(self.score))
 
         self.prev_timer = 0
@@ -84,20 +93,28 @@ class Tetris:
 
     def pack(self):
         self.canvas.pack(side=LEFT)
-        self.label.pack(anchor=N, side=LEFT)
+        self.score_label.pack(anchor=N, side=LEFT)
         self.score_text.pack(anchor=N, side=RIGHT)
 
     def configure(self):
         self.pack()
-        self.current_figure = SquareFigure(0,5)
+        self.current_figure = self._generate_new_figure()
+        # TODO: delete debug figures
+        SquareFigure(19,0).set_fields(self.fields)
+        SquareFigure(19,2).set_fields(self.fields)
+        SquareFigure(19,6).set_fields(self.fields)
+        SquareFigure(19,8).set_fields(self.fields)
+
         self._draw_fields()
         self._bind_events()
         self._start_loop()
 
+    def _generate_new_figure(self):
+        return SquareFigure(0,4)
+
     def _draw_fields(self):
         global canvas
         canvas = self.canvas
-
         canvas.delete(ALL)
 
         y_offset = 0
@@ -123,11 +140,28 @@ class Tetris:
             figure.reset_fields(self.fields)
             figure.move_down(self.fields)
         else:
-            pass
-            print('process rows')
-            #self.process_rows()
+            row_count = self._remove_full_rows()
+            self._add_to_score(row_count)
+            self.current_figure = self._generate_new_figure()
+            # TODO: check on full
         self._draw_fields()
 
+    def _remove_full_rows(self):
+        deleted_rows = [] # max 4
+
+        for y in range(self.height):
+            if all(cell.isnt_empty() for cell in self.fields[y]):
+                deleted_rows.append(y)
+
+        new_fields = [[CellColor.EMPTY]*self.width for i in range(len(deleted_rows))]
+        new_fields.extend(row for i, row in enumerate(self.fields) if i not in deleted_rows)
+        self.fields = new_fields
+        return len(deleted_rows)
+
+    def _add_to_score(self, rows_count):
+        prize = {1: 100, 2: 300, 3: 700, 4: 1500}
+        self.score += prize.get(rows_count, 0)
+        self.score_text.configure(text=str(self.score))
 
 def main():
     root = Tk()
