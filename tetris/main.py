@@ -5,6 +5,14 @@ from enum import Enum
 import random
 import time
 
+"""
+TODO:
+    - moving of figures
+    - losing game
+    - turn figure
+    - moar figures
+    - show next figure
+"""
 
 class CellColor(Enum):
     EMPTY = ""
@@ -31,20 +39,46 @@ class Figure:
     def turn(self, fields):
         pass
 
+    def _can_cell_move_to(self, y, x, fields):
+        if not len(fields) > y >= 0:
+            return False
+        if not len(fields[0]) > x >= 0:
+            return False
+        if fields[y][x].is_empty():
+            return True
+        return any(y == y_other and x == x_other for y_other, x_other, _ in self.cells)
+
     def can_move_down(self, fields):
-        for y, x, c in self.cells:
-            if y + 1 >= len(fields):
-                return False
-            if fields[y+1][x].isnt_empty() and \
-                    all(y+1 != y_other or x != x_other for y_other, x_other, _ in self.cells):
-                return False
-        return True
+        return all(self._can_cell_move_to(y + 1, x, fields) for y, x, _ in self.cells)
 
     def move_down(self, fields):
         new_cells = []
         for y, x, color in self.cells:
-            fields[y+1][x] = color
-            new_cells.append((y+1, x, color))
+            m_y, m_x = y + 1, x
+            fields[m_y][m_x] = color
+            new_cells.append((m_y, m_x, color))
+        self.cells = new_cells
+
+    def can_move_left(self, fields):
+        return all(self._can_cell_move_to(y, x - 1, fields) for y, x, _ in self.cells)
+
+    def move_left(self, fields):
+        new_cells = []
+        for y, x, color in self.cells:
+            m_y, m_x = y, x - 1
+            fields[m_y][m_x] = color
+            new_cells.append((m_y, m_x, color))
+        self.cells = new_cells
+
+    def can_move_right(self, fields):
+        return all(self._can_cell_move_to(y, x + 1, fields) for y, x, _ in self.cells)
+
+    def move_right(self, fields):
+        new_cells = []
+        for y, x, color in self.cells:
+            m_y, m_x = y, x + 1
+            fields[m_y][m_x] = color
+            new_cells.append((m_y, m_x, color))
         self.cells = new_cells
 
     def reset_fields(self, fields):
@@ -126,7 +160,26 @@ class Tetris:
             y_offset += self.cell_size
 
     def _bind_events(self):
-        pass
+        root = self.root
+        root.bind('<a>', self._left)
+        root.bind('<Left>', self._left)
+
+        root.bind('<d>', self._right)
+        root.bind('<Right>', self._right)
+
+    def _left(self, event):
+        print("_left")
+        if self.current_figure.can_move_left(self.fields):
+            self.current_figure.reset_fields(self.fields)
+            self.current_figure.move_left(self.fields)
+        print("_left_end")
+
+    def _right(self, event):
+        print("_right")
+        if self.current_figure.can_move_right(self.fields):
+            self.current_figure.reset_fields(self.fields)
+            self.current_figure.move_right(self.fields)
+        print("_right_end")
 
     def _start_loop(self):
         if time.monotonic() - self.prev_timer >= self.speed:
@@ -135,6 +188,7 @@ class Tetris:
         self.root.after(100, self._start_loop)
 
     def _iteration(self):
+        print("iteration")
         figure = self.current_figure
         if figure.can_move_down(self.fields):
             figure.reset_fields(self.fields)
