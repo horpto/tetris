@@ -25,9 +25,22 @@ class Figure:
     def turn(self, fields):
         pass
 
-    def set_fields(self, fields):
+    def can_move_down(self, fields):
+        for y, x, c in self.cells:
+            print('can_move_down', y,x, c, self.cells, (y+1, x, c) not in self.cells, fields[y+1][x] )
+            if y + 1 >= len(fields):
+                return False
+            if fields[y+1][x] != CellColor.EMPTY and \
+                    all(y+1 != y_other or x != x_other for y_other, x_other, _ in self.cells):
+                return False
+        return True
+
+    def move_down(self, fields):
+        new_cells = []
         for y, x, color in self.cells:
-            fields[y][x] = color
+            fields[y+1][x] = color
+            new_cells.append((y+1, x, color))
+        self.cells = new_cells
 
     def reset_fields(self, fields):
         for y, x, color in self.cells:
@@ -53,7 +66,7 @@ class Tetris:
         self.height = height
         self.speed = speed # speed of figure falling (in seconds)
 
-        self.field = [[CellColor.EMPTY]*width  for i in range(height)]
+        self.fields = [[CellColor.EMPTY]*width  for i in range(height)]
 
         self.canvas_width = width * self.cell_size
         self.canvas_height = height * self.cell_size,
@@ -67,31 +80,36 @@ class Tetris:
         self.score_text = Label(text=str(self.score))
 
         self.prev_timer = 0
+        self.current_figure = None
 
     def pack(self):
         self.canvas.pack(side=LEFT)
         self.label.pack(anchor=N, side=LEFT)
         self.score_text.pack(anchor=N, side=RIGHT)
 
-    def draw_field(self):
+    def configure(self):
+        self.pack()
+        self.current_figure = SquareFigure(0,5)
+        self._draw_fields()
+        self._bind_events()
+        self._start_loop()
+
+    def _draw_fields(self):
         global canvas
         canvas = self.canvas
 
-        canvas.delete()
+        canvas.delete(ALL)
 
         y_offset = 0
-        for row in self.field:
+        for row in self.fields:
             offset = 0
             for color in row:
                 canvas.create_rectangle(offset, y_offset, offset + self.cell_size, y_offset + self.cell_size, fill=color.value)
                 offset += self.cell_size
             y_offset += self.cell_size
-        canvas.create_line
 
-    def configure(self):
-        self.pack()
-        self.draw_field()
-        self._start_loop()
+    def _bind_events(self):
+        pass
 
     def _start_loop(self):
         if time.monotonic() - self.prev_timer >= self.speed:
@@ -100,8 +118,15 @@ class Tetris:
         self.root.after(100, self._start_loop)
 
     def _iteration(self):
-        print('iter', time.monotonic())
-        
+        figure = self.current_figure
+        if figure.can_move_down(self.fields):
+            figure.reset_fields(self.fields)
+            figure.move_down(self.fields)
+        else:
+            pass
+            print('process rows')
+            #self.process_rows()
+        self._draw_fields()
 
 
 def main():
