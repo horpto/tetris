@@ -10,7 +10,7 @@ TODO:
     + moving of figures
     - losing game
     - speed button
-    - turn figure
+    + turn figure
     + moar figures
     - show next figure
 """
@@ -20,6 +20,9 @@ class CellColor(Enum):
     RED = "red"
     GREEN = "green"
     BLUE = "blue"
+    MAGENTA = "magenta"
+    CYAN = "cyan"
+    PURPLE = "purple"
 
     @classmethod
     def choose_one(cls):
@@ -32,13 +35,22 @@ class CellColor(Enum):
         return self == self.EMPTY
 
 class Figure:
-    cells = ()
+    _cells = ()
 
-    def can_turn(self, fields):
-        pass
+    def __init__(self, i, j):
+        self.y, self.x = i, j
+        self.color = CellColor.choose_one()
 
-    def turn(self, fields):
-        pass
+    def _get_cells_for_matrix(self, cells):
+        return [(self.y + y, self.x + x, self.color)
+            for y, row in enumerate(cells)
+            for x, c in enumerate(row)
+            if c
+        ]
+
+    @property
+    def cells(self):
+        return self._get_cells_for_matrix(self._cells)
 
     def _can_cell_move_to(self, y, x, fields):
         if not len(fields) > y >= 0:
@@ -51,13 +63,20 @@ class Figure:
 
     def _move_with_transform(self, fields, moved_to_func):
         self.reset_fields(fields)
+        self.y, self.x = moved_to_func(self.y, self.x)
+        self.set_fields(fields)
 
-        new_cells = []
-        for y, x, color in self.cells:
-            m_y, m_x = moved_to_func(y, x)
-            fields[m_y][m_x] = color
-            new_cells.append((m_y, m_x, color))
-        self.cells = new_cells
+    def _get_turned_cells(self):
+        transposed = zip(*self._cells)
+        return [row[::-1] for row in transposed]
+
+    def can_turn(self, fields):
+        return all(self._can_cell_move_to(y, x, fields) for y, x, _ in self._get_cells_for_matrix(self._get_turned_cells()))
+
+    def turn(self, fields):
+        self.reset_fields(fields)
+        self._cells = self._get_turned_cells()
+        self.set_fields(fields)
 
     def can_move_down(self, fields):
         return all(self._can_cell_move_to(y + 1, x, fields) for y, x, _ in self.cells)
@@ -87,63 +106,54 @@ class Figure:
 
 
 class SquareFigure(Figure):
-    def __init__(self, i, j):
-        self.y, self.x = i, j
+    _cells = [
+        (1, 1),
+        (1, 1),
+    ]
 
-        self.cells = [
-            (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()),
-            (i+1, j, CellColor.choose_one()), (i+1, j+1, CellColor.choose_one())
-        ]
 
 class ILikeFigure(Figure):
-    def __init__(self, i, j):
-        self.y, self.x = i, j
-        self.cells = [
-            (i,     j, CellColor.choose_one()),
-            (i+1, j, CellColor.choose_one()),
-            (i+2, j, CellColor.choose_one()),
-            (i+3, j, CellColor.choose_one()),
-        ]
+    _cells = [
+        (1,),
+        (1,),
+        (1,),
+        (1,),
+    ]
+
 
 class JLikeFigure(Figure):
-    def __init__(self, i, j):
-        self.y, self.x = i, j
-        self.cells = [
-            (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()), (i, j+2, CellColor.choose_one()),
-                                                                            (i+1, j+2, CellColor.choose_one()),
-        ]
+    _cells = [
+        (1, 1, 1),
+        (0, 0, 1),
+    ]
+
 
 class LLikeFigure(Figure):
-    def __init__(self, i, j):
-        self.y, self.x = i, j
-        self.cells = [
-            (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()), (i, j+2, CellColor.choose_one()),
-            (i+1, j, CellColor.choose_one()),
-        ]
+    _cells = [
+        (1, 1, 1),
+        (1, 0, 0),
+    ]
+
 
 class TLikeFigure(Figure):
-    def __init__(self, i, j):
-        self.y, self.x = i, j
-        self.cells = [
-            (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()), (i, j+2, CellColor.choose_one()),
-                                            (i+1, j+1, CellColor.choose_one()),
-        ]
+    _cells = [
+        (1, 1, 1),
+        (0, 1, 0),
+    ]
+
 
 class SLikeFigure(Figure):
-    def __init__(self, i, j):
-        self.y, self.x = i, j
-        self.cells = [
-                                               (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()),
-            (i+1, j-1, CellColor.choose_one()),(i+1, j, CellColor.choose_one()),
-        ]
+    _cells = [
+        (0, 1, 1),
+        (1, 1, 0),
+    ]
+
 
 class ZLikeFigure(Figure):
-    def __init__(self, i, j):
-        self.y, self.x = i, j
-        self.cells = [
-            (i, j-1, CellColor.choose_one()), (i, j, CellColor.choose_one()),
-                                              (i+1, j, CellColor.choose_one()),(i+1, j+1, CellColor.choose_one()),
-        ]
+    _cells = [
+        (1, 1, 0),
+        (0, 1, 1),
+    ]
 
 
 # TODO: metaclass ?
@@ -180,7 +190,7 @@ class Tetris:
         self.score_text = Label(text=str(self.score))
 
         self.prev_timer = 0
-        self.current_figure = None
+        self.current_figure = self._generate_new_figure()
 
     def pack(self):
         self.canvas.pack(side=LEFT)
@@ -189,15 +199,10 @@ class Tetris:
 
     def configure(self):
         self.pack()
-        self.current_figure = self._generate_new_figure()
-        # TODO: delete debug figures
-        SquareFigure(19,0).set_fields(self.fields)
-        SquareFigure(19,2).set_fields(self.fields)
-        SquareFigure(19,6).set_fields(self.fields)
-        SquareFigure(19,8).set_fields(self.fields)
-
+        self.current_figure.set_fields(self.fields)
         self._draw_fields()
         self._bind_events()
+        self.prev_timer = time.monotonic()
         self._start_loop()
 
     def _generate_new_figure(self):
@@ -218,14 +223,17 @@ class Tetris:
 
     def _bind_events(self):
         root = self.root
-        root.bind('<a>', self._left)
-        root.bind('<Left>', self._left)
+        root.bind("<a>", self._left)
+        root.bind("<Left>", self._left)
 
-        root.bind('<d>', self._right)
-        root.bind('<Right>', self._right)
+        root.bind("<d>", self._right)
+        root.bind("<Right>", self._right)
 
-        root.bind('<s>', self._down)
-        root.bind('<Down>', self._down)
+        root.bind("<s>", self._down)
+        root.bind("<Down>", self._down)
+
+        root.bind("<w>", self._up)
+        root.bind("<Up>", self._up)
 
     def _left(self, event):
         print("_left")
@@ -248,6 +256,13 @@ class Tetris:
             self._draw_fields()
         print("_down_end")
 
+    def _up(self, event):
+        print("_up")
+        if self.current_figure.can_turn(self.fields):
+            self.current_figure.turn(self.fields)
+            self._draw_fields()
+        print("_up_end")
+
     def _start_loop(self):
         if time.monotonic() - self.prev_timer >= self.speed:
             self._iteration()
@@ -263,6 +278,7 @@ class Tetris:
             row_count = self._remove_full_rows()
             self._add_to_score(row_count)
             self.current_figure = self._generate_new_figure()
+            self.current_figure.set_fields(self.fields)
             # TODO: check on full
         self._draw_fields()
 
