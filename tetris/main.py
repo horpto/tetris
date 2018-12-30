@@ -48,38 +48,33 @@ class Figure:
             return True
         return any(y == y_other and x == x_other for y_other, x_other, _ in self.cells)
 
+    def _move_with_transform(self, fields, moved_to_func):
+        self.reset_fields(fields)
+
+        new_cells = []
+        for y, x, color in self.cells:
+            m_y, m_x = moved_to_func(y, x)
+            fields[m_y][m_x] = color
+            new_cells.append((m_y, m_x, color))
+        self.cells = new_cells
+
     def can_move_down(self, fields):
         return all(self._can_cell_move_to(y + 1, x, fields) for y, x, _ in self.cells)
 
     def move_down(self, fields):
-        new_cells = []
-        for y, x, color in self.cells:
-            m_y, m_x = y + 1, x
-            fields[m_y][m_x] = color
-            new_cells.append((m_y, m_x, color))
-        self.cells = new_cells
+        self._move_with_transform(fields, lambda y, x: (y + 1, x))
 
     def can_move_left(self, fields):
         return all(self._can_cell_move_to(y, x - 1, fields) for y, x, _ in self.cells)
 
     def move_left(self, fields):
-        new_cells = []
-        for y, x, color in self.cells:
-            m_y, m_x = y, x - 1
-            fields[m_y][m_x] = color
-            new_cells.append((m_y, m_x, color))
-        self.cells = new_cells
+        self._move_with_transform(fields, lambda y, x: (y, x - 1))
 
     def can_move_right(self, fields):
         return all(self._can_cell_move_to(y, x + 1, fields) for y, x, _ in self.cells)
 
     def move_right(self, fields):
-        new_cells = []
-        for y, x, color in self.cells:
-            m_y, m_x = y, x + 1
-            fields[m_y][m_x] = color
-            new_cells.append((m_y, m_x, color))
-        self.cells = new_cells
+        self._move_with_transform(fields, lambda y, x: (y, x + 1))
 
     def reset_fields(self, fields):
         for y, x, color in self.cells:
@@ -167,19 +162,29 @@ class Tetris:
         root.bind('<d>', self._right)
         root.bind('<Right>', self._right)
 
+        root.bind('<s>', self._down)
+        root.bind('<Down>', self._down)
+
     def _left(self, event):
         print("_left")
         if self.current_figure.can_move_left(self.fields):
-            self.current_figure.reset_fields(self.fields)
             self.current_figure.move_left(self.fields)
+            self._draw_fields()
         print("_left_end")
 
     def _right(self, event):
         print("_right")
         if self.current_figure.can_move_right(self.fields):
-            self.current_figure.reset_fields(self.fields)
             self.current_figure.move_right(self.fields)
+            self._draw_fields()
         print("_right_end")
+
+    def _down(self, event):
+        print("_down")
+        if self.current_figure.can_move_down(self.fields):
+            self.current_figure.move_down(self.fields)
+            self._draw_fields()
+        print("_down_end")
 
     def _start_loop(self):
         if time.monotonic() - self.prev_timer >= self.speed:
@@ -191,7 +196,6 @@ class Tetris:
         print("iteration")
         figure = self.current_figure
         if figure.can_move_down(self.fields):
-            figure.reset_fields(self.fields)
             figure.move_down(self.fields)
         else:
             row_count = self._remove_full_rows()
