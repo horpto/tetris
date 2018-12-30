@@ -7,10 +7,11 @@ import time
 
 """
 TODO:
-    - moving of figures
+    + moving of figures
     - losing game
+    - speed button
     - turn figure
-    - moar figures
+    + moar figures
     - show next figure
 """
 
@@ -94,6 +95,67 @@ class SquareFigure(Figure):
             (i+1, j, CellColor.choose_one()), (i+1, j+1, CellColor.choose_one())
         ]
 
+class ILikeFigure(Figure):
+    def __init__(self, i, j):
+        self.y, self.x = i, j
+        self.cells = [
+            (i,     j, CellColor.choose_one()),
+            (i+1, j, CellColor.choose_one()),
+            (i+2, j, CellColor.choose_one()),
+            (i+3, j, CellColor.choose_one()),
+        ]
+
+class JLikeFigure(Figure):
+    def __init__(self, i, j):
+        self.y, self.x = i, j
+        self.cells = [
+            (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()), (i, j+2, CellColor.choose_one()),
+                                                                            (i+1, j+2, CellColor.choose_one()),
+        ]
+
+class LLikeFigure(Figure):
+    def __init__(self, i, j):
+        self.y, self.x = i, j
+        self.cells = [
+            (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()), (i, j+2, CellColor.choose_one()),
+            (i+1, j, CellColor.choose_one()),
+        ]
+
+class TLikeFigure(Figure):
+    def __init__(self, i, j):
+        self.y, self.x = i, j
+        self.cells = [
+            (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()), (i, j+2, CellColor.choose_one()),
+                                            (i+1, j+1, CellColor.choose_one()),
+        ]
+
+class SLikeFigure(Figure):
+    def __init__(self, i, j):
+        self.y, self.x = i, j
+        self.cells = [
+                                               (i, j, CellColor.choose_one()), (i, j+1, CellColor.choose_one()),
+            (i+1, j-1, CellColor.choose_one()),(i+1, j, CellColor.choose_one()),
+        ]
+
+class ZLikeFigure(Figure):
+    def __init__(self, i, j):
+        self.y, self.x = i, j
+        self.cells = [
+            (i, j-1, CellColor.choose_one()), (i, j, CellColor.choose_one()),
+                                              (i+1, j, CellColor.choose_one()),(i+1, j+1, CellColor.choose_one()),
+        ]
+
+
+# TODO: metaclass ?
+FIGURES = (
+    SquareFigure,
+    ILikeFigure,
+    JLikeFigure,
+    LLikeFigure,
+    TLikeFigure,
+    SLikeFigure,
+    ZLikeFigure,
+)
 
 class Tetris:
     cell_size = 25
@@ -139,7 +201,7 @@ class Tetris:
         self._start_loop()
 
     def _generate_new_figure(self):
-        return SquareFigure(0,4)
+        return random.choice(FIGURES)(0, 4)
 
     def _draw_fields(self):
         global canvas
