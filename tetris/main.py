@@ -19,6 +19,7 @@ TODO:
     - beautiful view
     + case insensitive key bindings
     - levels
+    + turn figures randomly at creation time
 """
 
 
@@ -59,6 +60,9 @@ class Figure:
     def __init__(self, i, j):
         self.y, self.x = i, j
         self.color = CellColor.choose_one()
+
+        for i in range(random.randrange(3)):
+            self._cells = self._get_turned_cells()
 
     def _get_cells_for_matrix(self, cells):
         return [(self.y + y, self.x + x, self.color)
@@ -213,6 +217,7 @@ class Tetris:
 
         self.prev_timer = 0
         self.current_figure = self._generate_new_figure()
+        self.next_figure = self._generate_new_figure()
 
         self.running = True
 
@@ -230,7 +235,8 @@ class Tetris:
         self._start_loop()
 
     def _generate_new_figure(self):
-        return random.choice(FIGURES)(0, 4)
+        start_y, start_x = 0, 4
+        return random.choice(FIGURES)(start_y, start_x)
 
     def _draw_fields(self):
         global canvas
