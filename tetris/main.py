@@ -13,7 +13,11 @@ TODO:
     + turn figure
     + moar figures
     - show next figure
-    - pausing
+    + pausing
+    - menu
+    - writing about endofgame and pausing
+    - beautiful view
+    - case insensitive key bindings
 """
 
 class CellColor(Enum):
@@ -196,6 +200,8 @@ class Tetris:
         self.prev_timer = 0
         self.current_figure = self._generate_new_figure()
 
+        self.running = True
+
     def pack(self):
         self.canvas.pack(side=LEFT)
         self.score_label.pack(anchor=N, side=LEFT)
@@ -239,36 +245,43 @@ class Tetris:
         root.bind("<w>", self._up)
         root.bind("<Up>", self._up)
 
+        root.bind("<p>", self._set_pause)
+        root.bind("<Escape>", self._set_pause)
+
     def _left(self, event):
         print("_left")
-        if self.current_figure.can_move_left(self.fields):
+        if self.running and self.current_figure.can_move_left(self.fields):
             self.current_figure.move_left(self.fields)
             self._draw_fields()
         print("_left_end")
 
     def _right(self, event):
         print("_right")
-        if self.current_figure.can_move_right(self.fields):
+        if self.running and self.current_figure.can_move_right(self.fields):
             self.current_figure.move_right(self.fields)
             self._draw_fields()
         print("_right_end")
 
     def _down(self, event):
         print("_down")
-        if self.current_figure.can_move_down(self.fields):
+        if self.running and self.current_figure.can_move_down(self.fields):
             self.current_figure.move_down(self.fields)
             self._draw_fields()
         print("_down_end")
 
     def _up(self, event):
         print("_up")
-        if self.current_figure.can_turn(self.fields):
+        if self.running and self.current_figure.can_turn(self.fields):
             self.current_figure.turn(self.fields)
             self._draw_fields()
         print("_up_end")
 
+    def _set_pause(self, event):
+        print("_set_pause", self.running)
+        self.running = not self.running
+
     def _start_loop(self):
-        if time.monotonic() - self.prev_timer >= self.speed:
+        if self.running and time.monotonic() - self.prev_timer >= self.speed:
             self._iteration()
             self.prev_timer = time.monotonic()
         self.root.after(100, self._start_loop)
