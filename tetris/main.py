@@ -8,11 +8,12 @@ import time
 """
 TODO:
     + moving of figures
-    - losing game
+    + losing game
     - speed button
     + turn figure
     + moar figures
     - show next figure
+    - pausing
 """
 
 class CellColor(Enum):
@@ -95,6 +96,9 @@ class Figure:
 
     def move_right(self, fields):
         self._move_with_transform(fields, lambda y, x: (y, x + 1))
+
+    def can_add_on(self, fields):
+        return all(fields[y][x].is_empty() for y, x, color in self.cells)
 
     def reset_fields(self, fields):
         for y, x, color in self.cells:
@@ -277,9 +281,12 @@ class Tetris:
         else:
             row_count = self._remove_full_rows()
             self._add_to_score(row_count)
-            self.current_figure = self._generate_new_figure()
-            self.current_figure.set_fields(self.fields)
-            # TODO: check on full
+            self.current_figure = figure = self._generate_new_figure()
+            if figure.can_add_on(self.fields):
+                figure.set_fields(self.fields)
+            else:
+                # lose game
+                exit()
         self._draw_fields()
 
     def _remove_full_rows(self):
