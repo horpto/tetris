@@ -17,8 +17,22 @@ TODO:
     - menu
     - writing about endofgame and pausing
     - beautiful view
-    - case insensitive key bindings
+    + case insensitive key bindings
+    - levels
 """
+
+
+# https://stackoverflow.com/questions/7402516/tkinter-case-insensitive-bind/24804104#24804104
+def bind_key(widget, all_=False, modifier="", letter="", callback=None, add='',):
+    if modifier and letter:
+        letter = "-" + letter
+    if all_:
+        widget.bind_all('<{}{}>'.format(modifier, letter.upper()), callback, add)
+        widget.bind_all('<{}{}>'.format(modifier, letter.lower()), callback, add)
+    else:
+        widget.bind('<{}{}>'.format(modifier, letter.upper()), callback, add)
+        widget.bind('<{}{}>'.format(modifier, letter.lower()), callback, add)
+
 
 class CellColor(Enum):
     EMPTY = ""
@@ -233,19 +247,19 @@ class Tetris:
 
     def _bind_events(self):
         root = self.root
-        root.bind("<a>", self._left)
+        bind_key(root, letter="a", callback=self._left)
         root.bind("<Left>", self._left)
 
-        root.bind("<d>", self._right)
+        bind_key(root, letter="d", callback=self._right)
         root.bind("<Right>", self._right)
 
-        root.bind("<s>", self._down)
+        bind_key(root, letter="s", callback=self._down)
         root.bind("<Down>", self._down)
 
-        root.bind("<w>", self._up)
+        bind_key(root, letter="w", callback=self._up)
         root.bind("<Up>", self._up)
 
-        root.bind("<p>", self._set_pause)
+        bind_key(root, letter="p", callback=self._set_pause)
         root.bind("<Escape>", self._set_pause)
 
     def _left(self, event):
